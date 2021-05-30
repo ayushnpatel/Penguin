@@ -32,9 +32,13 @@ public class Lexer {
     int currentCol = currentPosition;
     int inputLength;
 
+    FiniteStateMachine numberFSM, stringFSM;
+
     public Lexer(File input) throws FileNotFoundException {
         this.input = input;
         inputString = parseInput();
+        numberFSM = buildNumberFSM();
+        stringFSM = buildStringFSM();
     }
 
     /**
@@ -73,12 +77,14 @@ public class Lexer {
 
         Token token = readToken();
 
-        while(token.type != TokenType.END_OF_INPUT){
+        while(token.type != TokenType.END_OF_INPUT && token.type != TokenType.ERROR){
             tokens.add(token);
-            System.out.println(token.type);
-            System.out.println(token.value);
+            // System.out.println(token.type);
+            // System.out.println(token.value);
             token = readToken();
         }; 
+
+        if(token.type == TokenType.ERROR) tokens.add(token);
 
         return tokens;
     }
@@ -107,15 +113,15 @@ public class Lexer {
      * @return
      */
     public Token buildNumberToken(){
-        Pair<State, String> pair = buildNumberFSM().testInput(inputString.substring(currentPosition));
+        Pair<State, String> pair = numberFSM.testInput(inputString.substring(currentPosition));
         currentPosition += pair.b.length();
         currentCol += pair.b.length();
         if(pair.a.getStateName().equals("Float")){    
-            return new Token(TokenType.DECIMAL, pair.b, currentRow, currentCol);
-        }else if(pair.a.getStateName().equals("Integer")){
-            return new Token(TokenType.INTEGER, pair.b, currentRow, currentCol);
-        }else
-            return new Token(TokenType.ERROR, "Unknown Token Type", currentRow, currentCol);
+            return new Token(TokenType.FLOAT, pair.b, currentRow, currentCol);
+            }else if(pair.a.getStateName().equals("Integer")){
+                return new Token(TokenType.INTEGER, pair.b, currentRow, currentCol);
+            }else
+            return new Token(TokenType.ERROR, pair.b, currentRow, currentCol);
     }
 
     /**
@@ -124,7 +130,7 @@ public class Lexer {
      */
     public Token buildOperatorToken(){
         Character currentCharacter = inputString.charAt(currentPosition);
-        System.out.println(currentCharacter);
+        // System.out.println(currentCharacter);
         currentPosition++;
         currentCol++;
         if(currentCharacter == ';'){
@@ -133,8 +139,8 @@ public class Lexer {
         if(currentCharacter == '\\'){
             if(currentPosition < inputLength && inputString.charAt(currentPosition) == 'n'){
                 currentPosition++;
-                currentCol++;
                 currentRow++;
+                currentCol = 0;
                 return new Token(TokenType.NEW_LINE, "\\n", currentRow, currentCol);
             }
         }
@@ -162,7 +168,7 @@ public class Lexer {
      * @return Token - Returns a string / variable (for the time being) token.
      */
     public Token buildStringToken(){
-        Pair<State, String> pair = buildStringFSM().testInput(inputString.substring(currentPosition));
+        Pair<State, String> pair = stringFSM.testInput(inputString.substring(currentPosition));
         currentPosition += pair.b.length();
         currentCol += pair.b.length();
         return new Token(TokenType.VARIABLE, pair.b, currentRow, currentCol);
@@ -213,10 +219,12 @@ public class Lexer {
                         return states.get(2);
                     else if(character <= 57 && character >= 48) // If the character is 0-9
                         return states.get(0);
-                    else //If the character is not a decimal nor 0-9
+                    else //If the character is not 0-9
                         return states.get(2);
+                case "Invalid":
+                    return states.get(2);
+                default: return states.get(2);
             }
-            return states.get(2);
         };
         return new FiniteStateMachine(currentState, acceptingStates, allStates, transitionFunction);
     }

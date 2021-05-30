@@ -22,7 +22,7 @@ public enum TokenType {
         STRING,
         BOOL,
         CHAR,
-        DECIMAL,
+        FLOAT,
         LONG,
         VOID,
         CONSTANT,

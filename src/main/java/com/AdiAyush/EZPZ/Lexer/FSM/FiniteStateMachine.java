@@ -34,17 +34,21 @@ public class FiniteStateMachine{
         char[] chars = input.toCharArray(); //splitting into character array for faster processing of longer lines of code
         StringBuilder output = new StringBuilder();
         State tempState = currentState;
-        for(char ch : chars){
-            State functionState = transitionFunction.moveState(tempState, allStates, ch);
-            tempState = !functionState.stateName.equals("Invalid") ? functionState : tempState; // If the state from the transition function is invalid, we keep the original state.
-            if(functionState.getStateName().equals("Invalid")) break; // If the state from the transition function is invalid, we break from the for loop.
-            else output.append(ch); //Otherwise, if the state was valid, we append the character tested to the output.
+
+        for(int x = 0; x < chars.length; x++){  
+            if(chars[x] == ' ' || chars[x] == ';') break; // We break out of the for loop here if we reach the end of the current token, which will occur at spaces or semicolons.
+            tempState = transitionFunction.moveState(tempState, allStates, chars[x]);
+            if(tempState.getStateName().equals("Invalid")){
+                while( (chars[x] != ' ' && chars[x] != ';')  && x < input.length()-1) {
+                    output.append(chars[x]);
+                    x++;
+                }
+                break;
+            } // If the state from the transition function is invalid, we break from the for loop.
+            else output.append(chars[x]); //Otherwise, if the state was valid, we append the character tested to the output.
         }
 
-        for(State state : acceptingStates)
-            if(tempState.equals(state))
-                return new Pair<State, String>(tempState, output.toString());
-        return null;
+        return new Pair<State, String>(tempState, output.toString());
         
     }
 }
